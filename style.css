@@ -320,4 +320,67 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
     .glass-sidebar { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); max-height: 400px; }
     .cine-grid { grid-template-columns: 1fr; }
     .split-view { grid-template-columns: 1fr; }
+
+}
+/* ================= MODO MOBILE (LAYOUT VERTICAL) ================= */
+@media (max-width: 900px) {
+    /* 1. Ajuste geral da tela */
+    .main-view { padding: 15px; padding-bottom: 100px; }
+    
+    /* 2. Formulário (Inputs) ocupando a largura total, mas elegante */
+    .glass-sidebar { 
+        width: 100%; 
+        max-height: none; /* Deixa crescer se precisar */
+        border-radius: 0 0 20px 20px; /* Arredonda só embaixo */
+        padding: 20px;
+        position: relative;
+    }
+
+    /* 3. Cards do topo (Resumo) */
+    .cine-grid { grid-template-columns: 1fr; gap: 10px; }
+    .cine-card { 
+        padding: 15px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    }
+    .card-value { font-size: 1.5rem; margin-top: 0; }
+
+    /* 4. A TABELA VIRA CARTÃO (Aqui está o segredo) */
+    .tx-row {
+        flex-direction: column; /* Empilha verticalmente */
+        align-items: flex-start; /* Alinha tudo à esquerda */
+        gap: 12px; /* Espaço entre o texto e o valor */
+        padding: 20px;
+        background: rgba(255,255,255,0.04); /* Um pouco mais claro pra destacar */
+    }
+
+    /* Parte de Cima do Card (Descrição e Data) */
+    .tx-row > div:first-child {
+        width: 100%;
+        border-bottom: 1px solid rgba(255,255,255,0.05); /* Linha separadora sutil */
+        padding-bottom: 8px;
+        margin-bottom: 5px;
+    }
+    .tx-row > div:first-child > div:first-child {
+        font-size: 1.1rem; /* Texto maior pra ler fácil */
+        white-space: normal; /* Permite quebrar linha se o texto for gigante */
+    }
+
+    /* Parte de Baixo do Card (Valor e Botões) */
+    .tx-row > div:last-child {
+        width: 100%;
+        display: flex;
+        justify-content: space-between; /* Valor na esquerda, Botões na direita */
+        align-items: center;
+    }
+    
+    /* Aumenta o tamanho dos botões de editar/apagar para dedo */
+    .tx-row i {
+        font-size: 1.2rem; /* Ícones maiores */
+        padding: 10px; /* Área de toque maior */
+    }
+
+    /* 5. Modal ajustado para não sair da tela */
+    .modal-box { width: 90%; max-width: none; }
 }
