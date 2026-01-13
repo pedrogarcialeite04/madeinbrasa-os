@@ -28,10 +28,8 @@ let chart = null;
 let weekOffset = 0;
 let viewMonth = false;
 
-// Rota da API
 const API_URL = '/api/transactions';
 
-// Configuração inicial de data e categoria
 document.getElementById('date').valueAsDate = new Date();
 setCategory('Carne', 'Carnes / Insumos');
 renderizarTela(); 
@@ -89,7 +87,6 @@ async function update() {
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
-        // Garante que é uma lista para não quebrar
         if (Array.isArray(data)) {
             db = data;
         } else {
@@ -126,7 +123,7 @@ async function addTx() {
 
     if (!Array.isArray(db)) db = [];
 
-    // Adiciona na tela NA HORA (Optimistic UI)
+    // Adiciona na tela NA HORA (Sem esperar servidor)
     if(!editId) {
         const tempItem = { id: 'temp' + Date.now(), desc, val, cat, date, type: mode };
         db.unshift(tempItem); 
@@ -138,11 +135,10 @@ async function addTx() {
     btnText.innerText = '...';
 
     try {
-        // Envia para o servidor
         const bodyData = editId ? { ...payload, id: editId, action: 'edit' } : payload;
         
         const response = await fetch(API_URL, { 
-            method: 'POST', // Sempre POST para garantir entrega
+            method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bodyData) 
         });
@@ -150,11 +146,11 @@ async function addTx() {
         if (!response.ok) throw new Error('Erro no servidor');
 
         if(editId) cancelEdit();
-        await update(); // Sincroniza
+        await update(); 
     } catch (error) {
         console.error(error);
         alert('Erro ao salvar.');
-        update(); // Recarrega se der erro
+        update(); 
     } finally {
         btnText.innerText = originalText;
     }
@@ -174,17 +170,28 @@ async function confirmDelete() {
         renderizarTela();
         closeModal();
 
-        // 2. Manda pro servidor apagar (USANDO POST 'action: delete')
+        // SE O ID FOR TEMPORÁRIO (começa com 'temp'), NÃO CHAMA O SERVIDOR
+        // Isso evita o erro 400 em itens que acabaram de ser criados visualmente
+        if (String(deleteId).startsWith('temp')) {
+            return; 
+        }
+
+        // 2. Manda pro servidor apagar 
         try {
-            await fetch(API_URL, { 
+            const response = await fetch(API_URL, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'delete', id: deleteId }) 
             });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                console.error("Erro delete:", err);
+            }
         } catch (error) {
             console.error(error);
-            alert("Erro ao excluir.");
-            update(); // Se falhar, traz de volta
+            // Se falhar a rede, não recarregamos a tela para não voltar o item
+            // Apenas no próximo refresh ele voltará se não tiver apagado
         }
     }
 }
@@ -268,7 +275,7 @@ function renderizarTela() {
 
     if(sortedDb.length > 0) {
         sortedDb.forEach(item => {
-            // === PROTEÇÃO DE CRASH: Ignora itens sem data ===
+            // Ignora itens bugados sem data
             if (!item.date || typeof item.date !== 'string') return; 
 
             const parts = item.date.split('-'); 
@@ -320,7 +327,6 @@ function renderizarTela() {
     document.getElementById('showExp').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp);
     document.getElementById('showBal').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inc - exp);
 
-    // === GRÁFICO (Formatado para Reais) ===
     const ctx = document.getElementById('myChart').getContext('2d');
     if(chart) chart.destroy();
     
@@ -349,7 +355,6 @@ function renderizarTela() {
                             let label = context.label || '';
                             if (label) { label += ': '; }
                             if (context.parsed !== null) {
-                                // Formata para R$
                                 label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
                             }
                             return label;

@@ -5,30 +5,30 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-    // 1. Permite que o site converse com o servidor (CORS)
+    // 1. CORS (Permissões de acesso)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-    // Responde rápido se for verificação do navegador
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
 
     try {
+        // --- TRATAMENTO ROBUSTO DE DADOS ---
         let data = req.body;
-
-        // Garante que o dado seja um Objeto JSON, mesmo se vier como Texto
+        
+        // Se vier como texto, força virar JSON
         if (typeof data === 'string') {
             try { data = JSON.parse(data); } catch (e) { data = {}; }
         }
         data = data || {}; 
-        
+
         const method = req.method;
 
-        // --- GET: Listar itens ---
+        // --- GET: Listar ---
         if (method === 'GET') {
             const { data: rows, error } = await supabase
                 .from('transactions')
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
             return res.status(200).json(rows);
         }
 
-        // --- POST: Realizar ações (Adicionar, Login, Apagar, Editar) ---
+        // --- POST: Ações ---
         if (method === 'POST') {
             
             // 1. LOGIN
@@ -52,13 +52,16 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 2. APAGAR (A Solução Definitiva)
-            // Usamos POST com action 'delete' para garantir que o ID chegue
+            // 2. APAGAR (CORREÇÃO AQUI)
             if (data.action === 'delete') {
                 const { id } = data;
-                if (!id) return res.status(400).json({ error: 'ID faltando' });
+                
+                // Se não tiver ID, avisa o erro
+                if (!id) return res.status(400).json({ error: 'ID faltando para exclusão' });
 
+                // Força apagar onde o ID é igual
                 const { error } = await supabase.from('transactions').delete().eq('id', id);
+                
                 if (error) throw error;
                 return res.status(200).json({ msg: 'Deletado com sucesso' });
             }
@@ -75,9 +78,8 @@ export default async function handler(req, res) {
                 return res.status(200).json({ msg: 'Atualizado' });
             }
 
-            // 4. ADICIONAR (Padrão)
+            // 4. ADICIONAR (Se não tiver action, é adicionar)
             const { desc, val, cat, date, type } = data;
-            // Validação simples
             if (desc && val !== undefined) {
                 const { error } = await supabase
                     .from('transactions')
@@ -88,10 +90,10 @@ export default async function handler(req, res) {
             }
         }
 
-        return res.status(404).json({ error: 'Ação não encontrada' });
+        return res.status(404).json({ error: 'Rota desconhecida' });
 
     } catch (error) {
-        console.error("Erro interno:", error);
+        console.error("Erro no servidor:", error);
         return res.status(500).json({ error: error.message });
     }
 }
