@@ -91,30 +91,73 @@ async function update() {
 }
 
 async function addTx() {
-    const desc = document.getElementById('desc').value;
-    const val = parseFloat(document.getElementById('val').value);
-    const cat = document.getElementById('cat').value; 
-    const date = document.getElementById('date').value;
+    const descInput = document.getElementById('desc');
+    const valInput = document.getElementById('val');
+    const catInput = document.getElementById('cat');
+    const dateInput = document.getElementById('date');
     const editId = document.getElementById('editIndex').value;
 
-    if(!desc || isNaN(val) || !date || !cat) return;
+    // 1. Tratamento de valor: Troca vírgula por ponto para o sistema entender
+    let rawVal = valInput.value;
+    if(rawVal) rawVal = rawVal.replace(',', '.'); 
+    
+    const val = parseFloat(rawVal);
+    const desc = descInput.value;
+    const cat = catInput.value;
+    const date = dateInput.value;
+
+    // 2. Validação com Feedback Visual
+    if (!desc || isNaN(val) || !date || !cat) {
+        alert("Preencha todos os campos corretamente!\nO valor deve ser numérico.");
+        return;
+    }
 
     const payload = { desc, val, cat, date, type: mode };
-    document.getElementById('btnText').innerText = 'Salvando...';
+    
+    // Feedback visual no botão
+    const btnSave = document.getElementById('btnSave');
+    const btnText = document.getElementById('btnText');
+    const originalText = btnText.innerText;
+    
+    btnText.innerText = 'Salvando...';
+    btnSave.disabled = true; // Evita duplo clique
 
-    if(editId) {
-        await fetch(API_URL, { method: 'PUT', body: JSON.stringify({ ...payload, id: editId }) });
-        cancelEdit();
-    } else {
-        await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-    }
+    try {
+        let response;
+        if (editId) {
+            response = await fetch(API_URL, { 
+                method: 'PUT', 
+                body: JSON.stringify({ ...payload, id: editId }) 
+            });
+            cancelEdit();
+        } else {
+            response = await fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify(payload) 
+            });
+        }
 
-    if(!editId) { 
-        document.getElementById('desc').value = ''; 
-        document.getElementById('val').value = ''; 
-        document.getElementById('btnText').innerText = 'Lançar';
+        if (response.ok) {
+            // Limpa o formulário apenas se deu certo
+            if (!editId) {
+                descInput.value = '';
+                valInput.value = '';
+                // Mantém a categoria e data para facilitar múltiplos lançamentos
+            }
+            await update(); // Atualiza a lista
+        } else {
+            const err = await response.json();
+            alert('Erro ao salvar: ' + (err.error || 'Erro desconhecido'));
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert('Erro de conexão. Verifique sua internet.');
+    } finally {
+        // Restaura o botão
+        btnText.innerText = originalText;
+        btnSave.disabled = false;
     }
-    await update(); 
 }
 
 function delTx(id) { deleteId = id; document.getElementById('modalOverlay').style.display = 'flex'; }

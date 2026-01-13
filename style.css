@@ -320,67 +320,138 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
     .glass-sidebar { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); max-height: 400px; }
     .cine-grid { grid-template-columns: 1fr; }
     .split-view { grid-template-columns: 1fr; }
-
 }
 /* ================= MODO MOBILE (LAYOUT VERTICAL) ================= */
+/* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
 @media (max-width: 900px) {
-    /* 1. Ajuste geral da tela */
-    .main-view { padding: 15px; padding-bottom: 100px; }
-    
-    /* 2. Formulário (Inputs) ocupando a largura total, mas elegante */
-    .glass-sidebar { 
-        width: 100%; 
-        max-height: none; /* Deixa crescer se precisar */
-        border-radius: 0 0 20px 20px; /* Arredonda só embaixo */
-        padding: 20px;
+    /* Libera a rolagem da página no mobile */
+    body {
+        overflow-y: auto; 
+        height: auto;
+        min-height: 100vh;
+        background-attachment: scroll; /* Melhora performance no mobile */
+    }
+
+    /* Remove o efeito 3D e partículas pesadas no mobile para limpar a visão */
+    #ember-container, .fire-particle {
+        display: none; 
+    }
+
+    /* Transforma o Dashboard em uma coluna única */
+    #dashboard-section {
         position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: auto;
+        opacity: 1 !important; /* Força visibilidade */
+        background: var(--bg-deep);
     }
 
-    /* 3. Cards do topo (Resumo) */
-    .cine-grid { grid-template-columns: 1fr; gap: 10px; }
-    .cine-card { 
-        padding: 15px; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-    }
-    .card-value { font-size: 1.5rem; margin-top: 0; }
-
-    /* 4. A TABELA VIRA CARTÃO (Aqui está o segredo) */
-    .tx-row {
-        flex-direction: column; /* Empilha verticalmente */
-        align-items: flex-start; /* Alinha tudo à esquerda */
-        gap: 12px; /* Espaço entre o texto e o valor */
+    /* Ajuste da barra lateral (que vira o topo no mobile) */
+    .glass-sidebar {
+        width: 100%;
+        height: auto;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
         padding: 20px;
-        background: rgba(255,255,255,0.04); /* Um pouco mais claro pra destacar */
+        border-radius: 0 0 20px 20px;
+        gap: 15px;
+        position: relative;
+        z-index: 10;
     }
 
-    /* Parte de Cima do Card (Descrição e Data) */
+    /* Aumenta os inputs para facilitar o toque */
+    .control-input, .select-trigger {
+        padding: 16px;
+        font-size: 16px; /* Evita zoom automático no iPhone */
+    }
+
+    /* Botão de Lançar grande e visível */
+    .button-launch {
+        width: 100%;
+        margin: 20px 0;
+        height: 55px;
+        font-size: 1.1rem;
+    }
+
+    /* Área principal com rolagem */
+    .main-view {
+        padding: 20px 15px;
+        padding-bottom: 80px; /* Espaço extra no final */
+        overflow: visible;
+        height: auto;
+    }
+
+    /* Cards de Resumo (Entrada/Saída/Balanço) */
+    .cine-grid {
+        grid-template-columns: 1fr; /* Um por linha */
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .cine-card {
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 15px;
+    }
+    
+    .card-value {
+        font-size: 1.8rem;
+    }
+
+    /* Gráfico e Lista um embaixo do outro */
+    .split-view {
+        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column-reverse; /* Lista primeiro, gráfico depois, ou vice-versa */
+        gap: 30px;
+    }
+
+    .transaction-list {
+        height: auto;
+        max-height: 400px; /* Limita altura mas permite scroll interno */
+    }
+
+    /* Estilo do Card da Lista (Transação) */
+    .tx-row {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
     .tx-row > div:first-child {
         width: 100%;
-        border-bottom: 1px solid rgba(255,255,255,0.05); /* Linha separadora sutil */
-        padding-bottom: 8px;
-        margin-bottom: 5px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-    .tx-row > div:first-child > div:first-child {
-        font-size: 1.1rem; /* Texto maior pra ler fácil */
-        white-space: normal; /* Permite quebrar linha se o texto for gigante */
-    }
-
-    /* Parte de Baixo do Card (Valor e Botões) */
+    
     .tx-row > div:last-child {
         width: 100%;
         display: flex;
-        justify-content: space-between; /* Valor na esquerda, Botões na direita */
+        justify-content: space-between;
         align-items: center;
     }
-    
-    /* Aumenta o tamanho dos botões de editar/apagar para dedo */
-    .tx-row i {
-        font-size: 1.2rem; /* Ícones maiores */
-        padding: 10px; /* Área de toque maior */
-    }
 
-    /* 5. Modal ajustado para não sair da tela */
-    .modal-box { width: 90%; max-width: none; }
+    /* Botões de Ação (Suporte/Sair) lado a lado no final do form */
+    .glass-sidebar > button.Btn-logout {
+        width: 100%;
+        border-radius: 12px;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    .Btn-logout .text {
+        opacity: 1;
+        width: auto;
+        position: relative;
+        color: black;
+        padding-left: 10px;
+    }
+    .Btn-logout .sign { width: auto; }
 }
