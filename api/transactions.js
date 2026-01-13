@@ -27,16 +27,18 @@ export default async function handler(req, res) {
         const data = req.body || {}; // Vercel já entrega o JSON pronto
 
         // --- LOGIN ---
-        if (method === 'POST' && data.action === 'login') {
-            const serverUser = process.env.APP_USER;
-            const serverPass = process.env.APP_PASS;
+if (method === 'POST' && data.action === 'login') {
+    // Definindo usuário e senha direto no código para não ter erro de leitura
+    const serverUser = 'madeinbrasa';
+    const serverPass = '123'; 
 
-            if (data.user === serverUser && data.pass === serverPass) {
-                return res.status(200).json({ authorized: true });
-            } else {
-                return res.status(401).json({ authorized: false });
-            }
-        }
+    // Compara o que você digitou com o que está escrito acima
+    if (data.user === serverUser && data.pass === serverPass) {
+        return res.status(200).json({ authorized: true });
+    } else {
+        return res.status(401).json({ authorized: false });
+    }
+}
 
         // --- GET (Listar) ---
         if (method === 'GET') {
