@@ -2,10 +2,7 @@
 function criarParticulas() {
     const container = document.getElementById('ember-container');
     if(!container) return;
-    
-    // Limpa anteriores se houver
     container.innerHTML = '';
-    
     for(let i=0; i<30; i++) spawnParticle(container);
 }
 
@@ -19,10 +16,7 @@ function spawnParticle(container) {
     el.style.animationDuration = (Math.random() * 3 + 2) + 's';
     el.style.animationDelay = Math.random() * 5 + 's';
     container.appendChild(el);
-    el.addEventListener('animationend', () => {
-        el.remove();
-        spawnParticle(container);
-    });
+    el.addEventListener('animationend', () => { el.remove(); spawnParticle(container); });
 }
 window.addEventListener('load', criarParticulas);
 
@@ -34,13 +28,12 @@ let chart = null;
 let weekOffset = 0;
 let viewMonth = false;
 
-// URL da API (Na Vercel, o arquivo api/transactions.js vira essa rota)
+// Rota da API
 const API_URL = '/api/transactions';
 
+// Configuração inicial de data e categoria
 document.getElementById('date').valueAsDate = new Date();
 setCategory('Carne', 'Carnes / Insumos');
-
-// Inicia
 renderizarTela(); 
 
 // --- LOGIN ---
@@ -71,8 +64,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             btn.style.opacity = '1';
         }
     } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro de conexão. Verifique a internet.');
+        alert('Erro de conexão.');
         btn.innerText = originalText;
         btn.style.opacity = '1';
     }
@@ -97,17 +89,15 @@ async function update() {
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
-        
+        // Garante que é uma lista para não quebrar
         if (Array.isArray(data)) {
             db = data;
         } else {
             db = [];
-            console.error("Erro: Servidor não retornou uma lista", data);
         }
         renderizarTela(); 
     } catch (error) {
         console.error("Erro ao carregar:", error);
-        // Não limpamos o DB aqui para não perder dados se for só falha de internet
     }
 }
 
@@ -126,7 +116,7 @@ async function addTx() {
     const date = dateInput.value;
 
     if (!desc || isNaN(val) || !date || !cat) {
-        alert("Preencha todos os campos corretamente.");
+        alert("Preencha todos os campos.");
         return;
     }
 
@@ -134,50 +124,37 @@ async function addTx() {
     const btnText = document.getElementById('btnText');
     const originalText = btnText.innerText;
 
-    // --- OPTIMISTIC UI (Atualiza a tela ANTES do servidor) ---
     if (!Array.isArray(db)) db = [];
 
-    // Se NÃO for edição, adiciona visualmente na hora
+    // Adiciona na tela NA HORA (Optimistic UI)
     if(!editId) {
-        const tempItem = { 
-            id: 'temp' + Date.now(), 
-            desc, val, cat, date, type: mode 
-        };
+        const tempItem = { id: 'temp' + Date.now(), desc, val, cat, date, type: mode };
         db.unshift(tempItem); 
         renderizarTela(); 
-        
-        // Limpa campos
         descInput.value = '';
         valInput.value = '';
         descInput.focus();
     }
-    // ---------------------------------------------------------
-
     btnText.innerText = '...';
 
     try {
-        const method = editId ? 'PUT' : 'POST';
-        // Se for edição, precisamos enviar o ID junto
-        const bodyData = editId ? { ...payload, id: editId } : payload;
-
+        // Envia para o servidor
+        const bodyData = editId ? { ...payload, id: editId, action: 'edit' } : payload;
+        
         const response = await fetch(API_URL, { 
-            method: method, 
-            headers: { 'Content-Type': 'application/json' }, // OBRIGATÓRIO PARA VERCEL
+            method: 'POST', // Sempre POST para garantir entrega
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bodyData) 
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error || 'Erro no servidor');
-        }
+        if (!response.ok) throw new Error('Erro no servidor');
 
         if(editId) cancelEdit();
-        await update(); // Sincroniza ID real do banco
+        await update(); // Sincroniza
     } catch (error) {
         console.error(error);
-        alert('Erro ao salvar: ' + error.message);
-        // Se der erro, recarrega para remover o item falso da tela
-        update(); 
+        alert('Erro ao salvar.');
+        update(); // Recarrega se der erro
     } finally {
         btnText.innerText = originalText;
     }
@@ -190,24 +167,24 @@ function delTx(id) {
 
 async function confirmDelete() {
     if(deleteId) {
-        // Remove visualmente
+        // 1. Remove da tela imediatamente
         if (Array.isArray(db)) {
             db = db.filter(item => item.id !== deleteId);
         }
         renderizarTela();
         closeModal();
 
+        // 2. Manda pro servidor apagar (USANDO POST 'action: delete')
         try {
             await fetch(API_URL, { 
-                method: 'DELETE', 
+                method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: deleteId }) 
+                body: JSON.stringify({ action: 'delete', id: deleteId }) 
             });
-            // Opcional: update() para garantir sincronia, mas visualmente já sumiu
         } catch (error) {
             console.error(error);
             alert("Erro ao excluir.");
-            update(); // Traz de volta se deu erro
+            update(); // Se falhar, traz de volta
         }
     }
 }
@@ -241,15 +218,11 @@ window.onclick = function(event) {
 function editTx(id) {
     const item = db.find(x => x.id === id);
     if(!item) return;
-    
     document.getElementById('desc').value = item.desc;
     document.getElementById('val').value = item.val;
-    // O input date precisa de YYYY-MM-DD
     document.getElementById('date').value = item.date; 
-    
     const catMap = { 'Carne': 'Carnes / Insumos', 'Bebida': 'Bebidas', 'Venda': 'Vendas', 'Fixo': 'Custo Fixo', 'Extra': 'Extra' };
     setCategory(item.cat, catMap[item.cat] || item.cat);
-    
     document.getElementById('editIndex').value = id;
     setMode(item.type);
     document.getElementById('btnText').innerText = 'Atualizar';
@@ -263,16 +236,13 @@ function cancelEdit() {
     document.getElementById('btnText').innerText = 'Lançar';
     document.getElementById('btnCancel').style.display = 'none';
     setCategory('Carne', 'Carnes / Insumos');
-    
-    // Volta a data para hoje
     document.getElementById('date').valueAsDate = new Date();
 }
 
 function changeWeek(n) { weekOffset += n; viewMonth = false; renderizarTela(); }
 function toggleMonthView() { 
     viewMonth = !viewMonth; 
-    const btn = document.querySelector('.toggle-view-btn');
-    btn.innerHTML = viewMonth ? 'VER SEMANA' : 'VER MÊS'; 
+    document.querySelector('.toggle-view-btn').innerHTML = viewMonth ? 'VER SEMANA' : 'VER MÊS'; 
     renderizarTela(); 
 }
 
@@ -289,25 +259,19 @@ function renderizarTela() {
     const curMonth = baseDate.getMonth();
     const curYear = baseDate.getFullYear();
 
-    const periodText = viewMonth ? 
+    document.getElementById('periodDisplay').innerText = viewMonth ? 
         `MÊS ${curMonth+1}/${curYear}` : `SEMANA ${curWeek} - ${curYear}`;
-    document.getElementById('periodDisplay').innerText = periodText;
 
     let hasItems = false;
     const safeDb = Array.isArray(db) ? db : [];
-    
-    // Ordena por ID decrescente
     const sortedDb = [...safeDb].sort((a, b) => b.id > a.id ? 1 : -1);
 
     if(sortedDb.length > 0) {
         sortedDb.forEach(item => {
-            // === PROTEÇÃO CONTRA CRASH (O "Conserto" do Erro Split) ===
-            if (!item.date || typeof item.date !== 'string') {
-                return; // Se o item não tiver data válida, ignora ele e não trava o site
-            }
+            // === PROTEÇÃO DE CRASH: Ignora itens sem data ===
+            if (!item.date || typeof item.date !== 'string') return; 
 
             const parts = item.date.split('-'); 
-            // Garante que a data tem 3 partes (Ano-Mes-Dia)
             if(parts.length < 3) return;
 
             const itemDate = new Date(parts[0], parts[1]-1, parts[2]);
@@ -356,7 +320,7 @@ function renderizarTela() {
     document.getElementById('showExp').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp);
     document.getElementById('showBal').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inc - exp);
 
-    // === GRÁFICO CORRIGIDO (R$ no Tooltip) ===
+    // === GRÁFICO (Formatado para Reais) ===
     const ctx = document.getElementById('myChart').getContext('2d');
     if(chart) chart.destroy();
     
@@ -376,9 +340,7 @@ function renderizarTela() {
             }]
         },
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            cutout: '75%', 
+            responsive: true, maintainAspectRatio: false, cutout: '75%', 
             plugins: { 
                 legend: { display: false },
                 tooltip: {
@@ -387,7 +349,7 @@ function renderizarTela() {
                             let label = context.label || '';
                             if (label) { label += ': '; }
                             if (context.parsed !== null) {
-                                // Formata para R$ 1.250,00 dentro do gráfico
+                                // Formata para R$
                                 label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
                             }
                             return label;
