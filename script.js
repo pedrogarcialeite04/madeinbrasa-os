@@ -165,36 +165,38 @@ function delTx(id) {
 
 // --- FUNÇÃO DE EXCLUSÃO CORRIGIDA ---
 async function confirmDelete() {
-    if(deleteId) {
-        // 1. Remove da tela imediatamente (Visual)
+    if (deleteId) {
+        // 1. Salva o ID numa variável local ANTES de limpar a global
+        const idParaApagar = deleteId;
+
+        // 2. Remove da tela imediatamente (Visual)
         if (Array.isArray(db)) {
-            db = db.filter(item => item.id !== deleteId);
+            db = db.filter(item => item.id !== idParaApagar);
         }
         renderizarTela();
+        
+        // 3. Fecha o modal (Isso vai limpar o deleteId global, mas já salvamos no idParaApagar)
         closeModal();
 
-        // 2. Se for item temporário, para por aqui
-        if (String(deleteId).startsWith('temp')) return;
+        // 4. Se for item temporário (acabou de criar), nem chama o servidor
+        if (String(idParaApagar).startsWith('temp')) return;
 
-        // 3. Manda pro servidor APAGAR (Com correção de tipo)
+        // 5. Manda pro servidor APAGAR usando a variável local correta
         try {
-            // Garante que o ID seja enviado como número puro, se possível
-            const idToSend = parseInt(deleteId);
-
-            await fetch(API_URL, { 
+            const response = await fetch(API_URL, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action: 'delete', 
-                    id: idToSend 
-                }) 
+                body: JSON.stringify({ action: 'delete', id: idParaApagar }) 
             });
             
-            // Opcional: Chama update() em background para garantir sincronia silenciosa
-            // update(); 
+            // Opcional: Verifica se deu certo no console
+            const resData = await response.json();
+            console.log("Status exclusão:", resData);
+
         } catch (error) {
-            console.error("Falha ao apagar no servidor:", error);
-            alert("Erro de conexão. O item pode reaparecer.");
+            console.error("Erro ao apagar:", error);
+            // Se falhar a internet, recarrega para mostrar a verdade
+            update(); 
         }
     }
 }
