@@ -1,4 +1,42 @@
-// --- SISTEMA CONECTADO AO BACKEND ---
+// --- EFEITOS VISUAIS (PARTÍCULAS DE FOGO) ---
+function criarParticulas() {
+    const container = document.getElementById('ember-container');
+    if(!container) return;
+    
+    // Cria 30 partículas iniciais
+    for(let i=0; i<30; i++) {
+        spawnParticle(container);
+    }
+}
+
+function spawnParticle(container) {
+    const el = document.createElement('div');
+    el.classList.add('fire-particle');
+    
+    // Posição aleatória na largura da tela
+    el.style.left = Math.random() * 100 + 'vw';
+    // Tamanho aleatório
+    const size = Math.random() * 10 + 5; 
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    // Duração da animação aleatória
+    el.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    // Atraso aleatório
+    el.style.animationDelay = Math.random() * 5 + 's';
+
+    container.appendChild(el);
+
+    // Quando terminar a animação, remove e cria outra para loop infinito
+    el.addEventListener('animationend', () => {
+        el.remove();
+        spawnParticle(container);
+    });
+}
+
+// Inicia as partículas assim que carregar
+window.addEventListener('load', criarParticulas);
+
+// --- SISTEMA ---
 let db = []; 
 let mode = 'income';
 let deleteId = null;
@@ -9,11 +47,11 @@ let viewMonth = false;
 // URL da API
 const API_URL = '/api/transactions';
 
-// Define a data de hoje no input assim que abre
+// Define a data de hoje
 document.getElementById('date').valueAsDate = new Date();
 setCategory('Carne', 'Carnes / Insumos');
 
-// Inicia a tela
+// Inicia tela
 renderizarTela(); 
 
 // --- LOGIN ---
@@ -24,7 +62,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const btn = document.querySelector('#loginForm button');
     const originalText = btn.innerText;
 
-    btn.innerText = 'VERIFICANDO...';
+    btn.innerText = '...';
     btn.style.opacity = '0.7';
 
     try {
@@ -38,7 +76,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             document.querySelector('.user-name').innerText = "MADE IN BRASA";
             iniciarSistema();
         } else {
-            alert('ACESSO NEGADO: Credenciais inválidas.');
+            alert('Senha incorreta.');
             btn.innerText = originalText;
             btn.style.opacity = '1';
         }
@@ -58,14 +96,14 @@ function iniciarSistema() {
     setTimeout(() => {
         sec.style.display = 'none';
         const dash = document.getElementById('dashboard-section');
-        dash.style.display = 'grid'; // Ajusta para grid no PC ou Flex no mobile via CSS
+        dash.style.display = 'grid'; // Grid no PC, CSS ajusta pra mobile
         renderizarTela();
         setTimeout(() => dash.style.opacity = '1', 50);
         update(); 
     }, 800);
 }
 
-// --- FUNÇÕES DE DADOS ---
+// --- DADOS ---
 async function update() {
     try {
         const response = await fetch(API_URL);
@@ -91,7 +129,7 @@ async function addTx() {
     const date = dateInput.value;
 
     if (!desc || isNaN(val) || !date || !cat) {
-        alert("Preencha todos os campos corretamente!");
+        alert("Preencha todos os campos!");
         return;
     }
 
@@ -99,57 +137,64 @@ async function addTx() {
     const btnText = document.getElementById('btnText');
     const originalText = btnText.innerText;
 
-    // --- ZERO DELAY (OPTIMISTIC UI) ---
-    // Adiciona na lista visualmente AGORA, antes de confirmar no servidor
+    // OPTIMISTIC UI: Adiciona na hora
     if(!editId) {
         const tempItem = { 
-            id: 'temp' + Date.now(), // ID temporário
+            id: 'temp' + Date.now(), 
             desc, val, cat, date, type: mode 
         };
-        db.unshift(tempItem); // Adiciona no topo da lista local
-        renderizarTela(); // Atualiza a tela instantaneamente
+        db.unshift(tempItem); 
+        renderizarTela(); 
         
-        // Limpa campos imediatamente para o próximo lançamento
         descInput.value = '';
         valInput.value = '';
         descInput.focus();
     }
 
-    btnText.innerText = '...'; // Feedback sutil
+    btnText.innerText = '...';
 
     try {
-        let response;
         if(editId) {
             await fetch(API_URL, { method: 'PUT', body: JSON.stringify({ ...payload, id: editId }) });
             cancelEdit();
         } else {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         }
-        await update(); // Sincroniza com o ID real do banco
+        await update(); 
     } catch (error) {
         console.error(error);
-        alert('Erro ao salvar no servidor. Verifique sua conexão.');
+        alert('Erro de conexão ao salvar.');
     } finally {
         btnText.innerText = originalText;
     }
 }
 
-function delTx(id) { deleteId = id; document.getElementById('modalOverlay').style.display = 'flex'; }
+function delTx(id) { 
+    deleteId = id; 
+    document.getElementById('modalOverlay').style.display = 'flex'; 
+}
 
 async function confirmDelete() {
     if(deleteId) {
-        // Remove visualmente na hora
+        // 1. Remove visualmente AGORA (sem esperar o servidor)
         db = db.filter(item => item.id !== deleteId);
         renderizarTela();
         closeModal();
 
-        // Remove no servidor
-        await fetch(API_URL, { method: 'DELETE', body: JSON.stringify({ id: deleteId }) });
-        update();
+        // 2. Avisa o servidor para apagar (em segundo plano)
+        // NÃO chamamos update() aqui para evitar que o item "volte" antes de ser apagado lá
+        try {
+            await fetch(API_URL, { method: 'DELETE', body: JSON.stringify({ id: deleteId }) });
+        } catch (error) {
+            console.error("Erro ao excluir no servidor", error);
+            // Se der erro real, aí sim recarregamos para mostrar que não apagou
+            alert("Erro ao sincronizar exclusão.");
+            update();
+        }
     }
 }
 
-// --- UI FUNCTIONS ---
+// --- UI ---
 function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; deleteId = null; }
 
 function setMode(m) {
@@ -224,7 +269,6 @@ function renderizarTela() {
     document.getElementById('periodDisplay').innerText = periodText;
 
     let hasItems = false;
-    // Ordena por ID (mais recente primeiro) para garantir ordem certa na inserção rápida
     const sortedDb = [...db].sort((a, b) => b.id > a.id ? 1 : -1);
 
     if(sortedDb.length > 0) {
@@ -246,7 +290,6 @@ function renderizarTela() {
                 
                 const div = document.createElement('div');
                 div.className = `tx-row ${item.type === 'income' ? 'inc' : 'exp'}`;
-                // Opacidade reduzida se for item temporário (feedback visual de "salvando")
                 if(String(item.id).startsWith('temp')) div.style.opacity = '0.5';
 
                 div.innerHTML = `
@@ -277,17 +320,12 @@ function renderizarTela() {
     document.getElementById('showExp').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp);
     document.getElementById('showBal').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inc - exp);
 
-    // --- GRÁFICO CORRIGIDO (R$) ---
     const ctx = document.getElementById('myChart').getContext('2d');
     if(chart) chart.destroy();
     
-    // Dados padrão para gráfico não sumir se for tudo 0
     let dataValues = [inc, exp];
     let bgColors = ['#2ecc71', '#ef4444'];
-    if(inc === 0 && exp === 0) {
-        dataValues = [1]; 
-        bgColors = ['#333']; // Cor cinza para vazio
-    }
+    if(inc === 0 && exp === 0) { dataValues = [1]; bgColors = ['#333']; }
 
     chart = new Chart(ctx, {
         type: 'doughnut',

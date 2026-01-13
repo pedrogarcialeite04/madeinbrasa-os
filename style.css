@@ -324,26 +324,35 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
 /* ================= MODO MOBILE (LAYOUT VERTICAL) ================= */
 /* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
 /* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
+/* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
 @media (max-width: 900px) {
-    /* Libera a rolagem da página no mobile */
+    /* 1. Libera a rolagem da página no mobile e corrige o fundo fixo */
     body {
         overflow-y: auto; 
         height: auto;
         min-height: 100vh;
-        background-attachment: scroll; 
+        background-attachment: scroll; /* Melhora performance no mobile */
     }
 
-    /* REMOVIDO O TRECHO QUE ESCONDIA O FOGO:
-       Antes tinha: #ember-container { display: none; }
-       Agora não tem mais, para o fogo aparecer.
-    */
-
-    /* Garante que o fogo não atrapalhe o clique */
+    /* 2. CONFIGURAÇÃO DO FOGO NO MOBILE */
+    /* Garante que o container do fogo apareça e fique atrás de tudo */
     #ember-container {
-        pointer-events: none;
-        z-index: 0; /* Fica atrás de tudo */
+        display: block; /* Garante que está visível */
+        pointer-events: none; /* Deixa clicar através do fogo */
+        z-index: 0; /* Fica no fundo */
+        position: fixed; /* Fixo na tela enquanto rola */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    
+    /* Ajuste das partículas para não ficarem gigantes no celular */
+    .fire-particle {
+        transform: scale(0.8); /* Um pouco menores */
     }
 
+    /* 3. LAYOUT DO DASHBOARD */
     #dashboard-section {
         position: relative;
         display: flex;
@@ -351,7 +360,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
         width: 100%;
         height: auto;
         opacity: 1 !important; /* Força visibilidade */
-        background: var(--bg-deep);
+        background: transparent; /* Deixa transparente para ver o fundo/fogo */
+        z-index: 10; /* Fica na frente do fogo */
     }
 
     /* Ajuste da barra lateral (que vira o topo no mobile) */
@@ -365,7 +375,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
         border-radius: 0 0 20px 20px;
         gap: 15px;
         position: relative;
-        z-index: 10;
+        z-index: 20;
+        background: rgba(18, 18, 18, 0.90); /* Um pouco mais escuro para ler melhor */
     }
 
     /* Aumenta os inputs para facilitar o toque */
@@ -385,9 +396,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
     /* Área principal com rolagem */
     .main-view {
         padding: 20px 15px;
-        padding-bottom: 80px; /* Espaço extra no final */
+        padding-bottom: 80px; /* Espaço extra no final para não cortar conteúdo */
         overflow: visible;
         height: auto;
+        position: relative;
+        z-index: 10;
     }
 
     /* Cards de Resumo (Entrada/Saída/Balanço) */
@@ -403,17 +416,19 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
         justify-content: space-between;
         align-items: center;
         border-radius: 15px;
+        background: rgba(20, 20, 20, 0.8); /* Fundo semi-transparente */
+        backdrop-filter: blur(10px);
     }
     
     .card-value {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
     }
 
     /* Gráfico e Lista um embaixo do outro */
     .split-view {
         grid-template-columns: 1fr;
         display: flex;
-        flex-direction: column-reverse; /* Lista primeiro, gráfico depois, ou vice-versa */
+        flex-direction: column-reverse; /* Lista primeiro, gráfico depois */
         gap: 30px;
     }
 
@@ -427,8 +442,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
         flex-direction: column;
         align-items: flex-start;
         padding: 15px;
-        background: rgba(255,255,255,0.04);
+        background: rgba(30, 30, 30, 0.8);
         border: 1px solid rgba(255,255,255,0.05);
+        backdrop-filter: blur(5px);
     }
 
     .tx-row > div:first-child {
@@ -460,4 +476,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
         padding-left: 10px;
     }
     .Btn-logout .sign { width: auto; }
+    
+    /* Ajuste do Modal para não sair da tela */
+    .modal-box {
+        width: 90%;
+        max-width: none;
+    }
 }
