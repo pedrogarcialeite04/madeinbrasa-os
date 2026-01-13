@@ -1,5 +1,3 @@
-// ... (Mantenha o código das partículas de fogo aqui em cima igual estava) ...
-
 // --- SISTEMA CONECTADO AO BACKEND ---
 let db = []; 
 let mode = 'income';
@@ -15,10 +13,10 @@ const API_URL = '/api/transactions';
 document.getElementById('date').valueAsDate = new Date();
 setCategory('Carne', 'Carnes / Insumos');
 
-// Inicia a tela com a data de hoje para não ficar "Carregando..."
+// Inicia a tela
 renderizarTela(); 
 
-/// --- LOGIN SEGURO (VIA BACKEND) ---
+// --- LOGIN ---
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const u = document.getElementById('userInput').value;
@@ -26,36 +24,27 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const btn = document.querySelector('#loginForm button');
     const originalText = btn.innerText;
 
-    // Feedback visual para o cliente saber que está processando
     btn.innerText = 'VERIFICANDO...';
     btn.style.opacity = '0.7';
 
     try {
-        // Envia para o servidor checar
         const response = await fetch(API_URL, {
             method: 'POST',
-            body: JSON.stringify({ 
-                action: 'login', 
-                user: u, 
-                pass: p 
-            })
+            body: JSON.stringify({ action: 'login', user: u, pass: p })
         });
-
         const result = await response.json();
 
         if (response.ok && result.authorized) {
-            // SUCESSO
             document.querySelector('.user-name').innerText = "MADE IN BRASA";
             iniciarSistema();
         } else {
-            // ERRO
             alert('ACESSO NEGADO: Credenciais inválidas.');
             btn.innerText = originalText;
             btn.style.opacity = '1';
         }
     } catch (error) {
-        console.error('Erro no login:', error);
-        alert('Erro de conexão. Tente novamente.');
+        console.error('Erro:', error);
+        alert('Erro de conexão.');
         btn.innerText = originalText;
         btn.style.opacity = '1';
     }
@@ -69,17 +58,14 @@ function iniciarSistema() {
     setTimeout(() => {
         sec.style.display = 'none';
         const dash = document.getElementById('dashboard-section');
-        dash.style.display = 'grid';
-        
-        // Garante que a data apareça certa imediatamente
+        dash.style.display = 'grid'; // Ajusta para grid no PC ou Flex no mobile via CSS
         renderizarTela();
-        
         setTimeout(() => dash.style.opacity = '1', 50);
-        update(); // Busca os dados do banco
+        update(); 
     }, 800);
 }
 
-// --- FUNÇÕES DE API ---
+// --- FUNÇÕES DE DADOS ---
 async function update() {
     try {
         const response = await fetch(API_URL);
@@ -97,66 +83,54 @@ async function addTx() {
     const dateInput = document.getElementById('date');
     const editId = document.getElementById('editIndex').value;
 
-    // 1. Tratamento de valor: Troca vírgula por ponto para o sistema entender
     let rawVal = valInput.value;
     if(rawVal) rawVal = rawVal.replace(',', '.'); 
-    
     const val = parseFloat(rawVal);
     const desc = descInput.value;
     const cat = catInput.value;
     const date = dateInput.value;
 
-    // 2. Validação com Feedback Visual
     if (!desc || isNaN(val) || !date || !cat) {
-        alert("Preencha todos os campos corretamente!\nO valor deve ser numérico.");
+        alert("Preencha todos os campos corretamente!");
         return;
     }
 
     const payload = { desc, val, cat, date, type: mode };
-    
-    // Feedback visual no botão
-    const btnSave = document.getElementById('btnSave');
     const btnText = document.getElementById('btnText');
     const originalText = btnText.innerText;
-    
-    btnText.innerText = 'Salvando...';
-    btnSave.disabled = true; // Evita duplo clique
+
+    // --- ZERO DELAY (OPTIMISTIC UI) ---
+    // Adiciona na lista visualmente AGORA, antes de confirmar no servidor
+    if(!editId) {
+        const tempItem = { 
+            id: 'temp' + Date.now(), // ID temporário
+            desc, val, cat, date, type: mode 
+        };
+        db.unshift(tempItem); // Adiciona no topo da lista local
+        renderizarTela(); // Atualiza a tela instantaneamente
+        
+        // Limpa campos imediatamente para o próximo lançamento
+        descInput.value = '';
+        valInput.value = '';
+        descInput.focus();
+    }
+
+    btnText.innerText = '...'; // Feedback sutil
 
     try {
         let response;
-        if (editId) {
-            response = await fetch(API_URL, { 
-                method: 'PUT', 
-                body: JSON.stringify({ ...payload, id: editId }) 
-            });
+        if(editId) {
+            await fetch(API_URL, { method: 'PUT', body: JSON.stringify({ ...payload, id: editId }) });
             cancelEdit();
         } else {
-            response = await fetch(API_URL, { 
-                method: 'POST', 
-                body: JSON.stringify(payload) 
-            });
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         }
-
-        if (response.ok) {
-            // Limpa o formulário apenas se deu certo
-            if (!editId) {
-                descInput.value = '';
-                valInput.value = '';
-                // Mantém a categoria e data para facilitar múltiplos lançamentos
-            }
-            await update(); // Atualiza a lista
-        } else {
-            const err = await response.json();
-            alert('Erro ao salvar: ' + (err.error || 'Erro desconhecido'));
-        }
-
+        await update(); // Sincroniza com o ID real do banco
     } catch (error) {
         console.error(error);
-        alert('Erro de conexão. Verifique sua internet.');
+        alert('Erro ao salvar no servidor. Verifique sua conexão.');
     } finally {
-        // Restaura o botão
         btnText.innerText = originalText;
-        btnSave.disabled = false;
     }
 }
 
@@ -164,8 +138,13 @@ function delTx(id) { deleteId = id; document.getElementById('modalOverlay').styl
 
 async function confirmDelete() {
     if(deleteId) {
-        await fetch(API_URL, { method: 'DELETE', body: JSON.stringify({ id: deleteId }) });
+        // Remove visualmente na hora
+        db = db.filter(item => item.id !== deleteId);
+        renderizarTela();
         closeModal();
+
+        // Remove no servidor
+        await fetch(API_URL, { method: 'DELETE', body: JSON.stringify({ id: deleteId }) });
         update();
     }
 }
@@ -198,6 +177,7 @@ window.onclick = function(event) {
 
 function editTx(id) {
     const item = db.find(x => x.id === id);
+    if(!item) return;
     document.getElementById('desc').value = item.desc;
     document.getElementById('val').value = item.val;
     document.getElementById('date').value = item.date;
@@ -221,7 +201,6 @@ function cancelEdit() {
 function changeWeek(n) { weekOffset += n; viewMonth = false; renderizarTela(); }
 function toggleMonthView() { 
     viewMonth = !viewMonth; 
-    // Atualiza o texto do botão
     const btn = document.querySelector('.toggle-view-btn');
     btn.innerHTML = viewMonth ? 'VER SEMANA' : 'VER MÊS'; 
     renderizarTela(); 
@@ -229,8 +208,6 @@ function toggleMonthView() {
 
 function renderizarTela() {
     const list = document.getElementById('list');
-    
-    // Se não tiver lista (ainda na tela de login), não faz nada para não dar erro
     if(!list) return;
 
     list.innerHTML = '';
@@ -242,16 +219,16 @@ function renderizarTela() {
     const curMonth = baseDate.getMonth();
     const curYear = baseDate.getFullYear();
 
-    // Atualiza o texto do período e remove o "Carregando"
     const periodText = viewMonth ? 
         `MÊS ${curMonth+1}/${curYear}` : `SEMANA ${curWeek} - ${curYear}`;
     document.getElementById('periodDisplay').innerText = periodText;
 
     let hasItems = false;
+    // Ordena por ID (mais recente primeiro) para garantir ordem certa na inserção rápida
+    const sortedDb = [...db].sort((a, b) => b.id > a.id ? 1 : -1);
 
-    // Se db estiver vazio (ainda carregando), não quebra
-    if(db && db.length > 0) {
-        db.forEach(item => {
+    if(sortedDb.length > 0) {
+        sortedDb.forEach(item => {
             const parts = item.date.split('-'); 
             const itemDate = new Date(parts[0], parts[1]-1, parts[2]);
             const itemWeek = getWeek(new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()));
@@ -269,17 +246,22 @@ function renderizarTela() {
                 
                 const div = document.createElement('div');
                 div.className = `tx-row ${item.type === 'income' ? 'inc' : 'exp'}`;
+                // Opacidade reduzida se for item temporário (feedback visual de "salvando")
+                if(String(item.id).startsWith('temp')) div.style.opacity = '0.5';
+
                 div.innerHTML = `
                     <div>
                         <div style="font-weight:700; color:#fff;">${item.desc}</div>
                         <div style="font-size:0.8rem; color:#888;">${item.cat} • ${parts[2]}/${parts[1]}/${parts[0]}</div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <span style="font-weight:700; color:${item.type==='income'?'#2ecc71':'#ef4444'}">
+                    <div>
+                        <span style="font-weight:700; font-size:1.1rem; color:${item.type==='income'?'#2ecc71':'#ef4444'}">
                             ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.val)}
                         </span>
-                        <i class="fa-solid fa-pen" style="color:#666; cursor:pointer;" onclick="editTx(${item.id})"></i>
-                        <i class="fa-solid fa-trash" style="color:#666; cursor:pointer;" onclick="delTx(${item.id})"></i>
+                        <div style="display:flex; gap:15px; margin-left:15px;">
+                            <i class="fa-solid fa-pen" style="color:#666; cursor:pointer;" onclick="editTx(${item.id})"></i>
+                            <i class="fa-solid fa-trash" style="color:#666; cursor:pointer;" onclick="delTx(${item.id})"></i>
+                        </div>
                     </div>
                 `;
                 list.appendChild(div);
@@ -295,19 +277,49 @@ function renderizarTela() {
     document.getElementById('showExp').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(exp);
     document.getElementById('showBal').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inc - exp);
 
+    // --- GRÁFICO CORRIGIDO (R$) ---
     const ctx = document.getElementById('myChart').getContext('2d');
     if(chart) chart.destroy();
+    
+    // Dados padrão para gráfico não sumir se for tudo 0
+    let dataValues = [inc, exp];
+    let bgColors = ['#2ecc71', '#ef4444'];
+    if(inc === 0 && exp === 0) {
+        dataValues = [1]; 
+        bgColors = ['#333']; // Cor cinza para vazio
+    }
+
     chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Entrada', 'Saída'],
             datasets: [{
-                data: [inc || 1, exp || 0], // Evita gráfico vazio
-                backgroundColor: ['#2ecc71', '#ef4444'],
-                borderWidth: 0
+                data: dataValues,
+                backgroundColor: bgColors,
+                borderWidth: 0,
+                hoverOffset: 4
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: {display:false} } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            cutout: '75%', 
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) { label += ': '; }
+                            if (context.parsed !== null) {
+                                label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            } 
+        }
     });
 }
 

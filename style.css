@@ -323,21 +323,27 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
 }
 /* ================= MODO MOBILE (LAYOUT VERTICAL) ================= */
 /* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
+/* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
 @media (max-width: 900px) {
     /* Libera a rolagem da página no mobile */
     body {
         overflow-y: auto; 
         height: auto;
         min-height: 100vh;
-        background-attachment: scroll; /* Melhora performance no mobile */
+        background-attachment: scroll; 
     }
 
-    /* Remove o efeito 3D e partículas pesadas no mobile para limpar a visão */
-    #ember-container, .fire-particle {
-        display: none; 
+    /* REMOVIDO O TRECHO QUE ESCONDIA O FOGO:
+       Antes tinha: #ember-container { display: none; }
+       Agora não tem mais, para o fogo aparecer.
+    */
+
+    /* Garante que o fogo não atrapalhe o clique */
+    #ember-container {
+        pointer-events: none;
+        z-index: 0; /* Fica atrás de tudo */
     }
 
-    /* Transforma o Dashboard em uma coluna única */
     #dashboard-section {
         position: relative;
         display: flex;
