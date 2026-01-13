@@ -71,13 +71,27 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 function iniciarSistema() {
     const sec = document.getElementById('login-section');
+    
+    // Efeito de saída do login
     sec.style.opacity = '0';
     sec.style.transform = 'scale(1.5)';
+    
     setTimeout(() => {
-        sec.style.display = 'none';
+        sec.style.display = 'none'; // Some com o login
+        
         const dash = document.getElementById('dashboard-section');
-        dash.style.display = 'grid'; 
+        
+        // CORREÇÃO: Força o modo de exibição correto
+        // Se for celular (tela menor que 900px), usa FLEX, senão GRID
+        if (window.innerWidth <= 900) {
+            dash.style.display = 'flex'; 
+        } else {
+            dash.style.display = 'grid'; 
+        }
+        
         renderizarTela();
+        
+        // Fade in suave
         setTimeout(() => dash.style.opacity = '1', 50);
         update(); 
     }, 800);

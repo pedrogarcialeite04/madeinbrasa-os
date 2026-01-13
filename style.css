@@ -321,165 +321,124 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
     .cine-grid { grid-template-columns: 1fr; }
     .split-view { grid-template-columns: 1fr; }
 }
-/* ================= MODO MOBILE (LAYOUT VERTICAL) ================= */
-/* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
-/* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
-/* ================= MODO MOBILE (LAYOUT VERTICAL CORRIGIDO) ================= */
+/* ================= MODO MOBILE (CORRIGIDO) ================= */
 @media (max-width: 900px) {
-    /* 1. Libera a rolagem da página no mobile e corrige o fundo fixo */
+    /* 1. Limpa a tela e permite rolagem */
     body {
         overflow-y: auto; 
         height: auto;
         min-height: 100vh;
-        background-attachment: scroll; /* Melhora performance no mobile */
+        background-attachment: scroll;
     }
 
-    /* 2. CONFIGURAÇÃO DO FOGO NO MOBILE */
-    /* Garante que o container do fogo apareça e fique atrás de tudo */
-    #ember-container {
-        display: block; /* Garante que está visível */
-        pointer-events: none; /* Deixa clicar através do fogo */
-        z-index: 0; /* Fica no fundo */
-        position: fixed; /* Fixo na tela enquanto rola */
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-    }
-    
-    /* Ajuste das partículas para não ficarem gigantes no celular */
-    .fire-particle {
-        transform: scale(0.8); /* Um pouco menores */
+    /* 2. Login Fixo e Cobrindo Tudo */
+    #login-section {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        z-index: 9999; /* Garante que fique MUITO acima de tudo */
+        background-color: var(--bg-deep); /* Fundo sólido para não vazar nada */
+        background-image: url('sis.jpg');
+        background-size: cover;
     }
 
-    /* 3. LAYOUT DO DASHBOARD */
+    /* 3. Dashboard começa ESCONDIDO */
     #dashboard-section {
+        display: none; /* CRUCIAL: Começa invisível */
+        opacity: 0;
         position: relative;
-        display: flex;
         flex-direction: column;
         width: 100%;
         height: auto;
-        opacity: 1 !important; /* Força visibilidade */
-        background: transparent; /* Deixa transparente para ver o fundo/fogo */
-        z-index: 10; /* Fica na frente do fogo */
+        background: transparent;
+        z-index: 10;
+        padding-bottom: 50px;
     }
 
-    /* Ajuste da barra lateral (que vira o topo no mobile) */
+    /* 4. Ajustes do Menu no Mobile */
     .glass-sidebar {
         width: 100%;
         height: auto;
-        max-height: none;
         border-right: none;
         border-bottom: 1px solid rgba(255,255,255,0.1);
         padding: 20px;
-        border-radius: 0 0 20px 20px;
-        gap: 15px;
         position: relative;
         z-index: 20;
-        background: rgba(18, 18, 18, 0.90); /* Um pouco mais escuro para ler melhor */
+        background: rgba(18, 18, 18, 0.95); 
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
     }
 
-    /* Aumenta os inputs para facilitar o toque */
-    .control-input, .select-trigger {
-        padding: 16px;
-        font-size: 16px; /* Evita zoom automático no iPhone */
+    /* Inputs maiores para dedo */
+    .control-input, .select-trigger, .btn-gold {
+        padding: 15px;
+        font-size: 1rem;
+        height: auto;
     }
 
-    /* Botão de Lançar grande e visível */
+    /* Botão Lançar bem visível */
     .button-launch {
         width: 100%;
-        margin: 20px 0;
-        height: 55px;
-        font-size: 1.1rem;
+        margin: 15px 0;
+        height: 50px;
     }
 
-    /* Área principal com rolagem */
+    /* 5. Ajuste da Visão Geral */
     .main-view {
-        padding: 20px 15px;
-        padding-bottom: 80px; /* Espaço extra no final para não cortar conteúdo */
+        padding: 15px;
         overflow: visible;
         height: auto;
-        position: relative;
-        z-index: 10;
     }
 
-    /* Cards de Resumo (Entrada/Saída/Balanço) */
-    .cine-grid {
-        grid-template-columns: 1fr; /* Um por linha */
+    .view-header {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 15px;
-        margin-bottom: 30px;
+    }
+
+    /* Cards um abaixo do outro */
+    .cine-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
 
     .cine-card {
         padding: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         border-radius: 15px;
-        background: rgba(20, 20, 20, 0.8); /* Fundo semi-transparente */
-        backdrop-filter: blur(10px);
-    }
-    
-    .card-value {
-        font-size: 1.6rem;
+        background: rgba(20, 20, 20, 0.9);
     }
 
-    /* Gráfico e Lista um embaixo do outro */
+    /* Gráfico e Lista */
     .split-view {
-        grid-template-columns: 1fr;
         display: flex;
-        flex-direction: column-reverse; /* Lista primeiro, gráfico depois */
+        flex-direction: column-reverse; /* Lista em cima, gráfico embaixo no mobile */
         gap: 30px;
     }
 
     .transaction-list {
         height: auto;
-        max-height: 400px; /* Limita altura mas permite scroll interno */
+        max-height: 400px; /* Limite para não ficar infinito */
     }
 
-    /* Estilo do Card da Lista (Transação) */
-    .tx-row {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 15px;
-        background: rgba(30, 30, 30, 0.8);
-        border: 1px solid rgba(255,255,255,0.05);
-        backdrop-filter: blur(5px);
-    }
-
-    .tx-row > div:first-child {
-        width: 100%;
-        margin-bottom: 10px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+    /* 6. Correção do Gráfico no Celular */
+    .chart-panel {
+        height: 300px;
+        margin-bottom: 20px;
     }
     
-    .tx-row > div:last-child {
+    .chart-container {
+        height: 100%;
         width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
 
-    /* Botões de Ação (Suporte/Sair) lado a lado no final do form */
-    .glass-sidebar > button.Btn-logout {
+    /* Botões finais */
+    .Btn-logout {
         width: 100%;
         border-radius: 12px;
         justify-content: center;
-        margin-top: 10px;
+        background-color: var(--fire-glow);
     }
-    .Btn-logout .text {
-        opacity: 1;
-        width: auto;
-        position: relative;
-        color: black;
-        padding-left: 10px;
-    }
+    .Btn-logout .text { opacity: 1; width: auto; padding-left: 10px; position: relative; color: #000; }
     .Btn-logout .sign { width: auto; }
-    
-    /* Ajuste do Modal para não sair da tela */
-    .modal-box {
-        width: 90%;
-        max-width: none;
-    }
 }
