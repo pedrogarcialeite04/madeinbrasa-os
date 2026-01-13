@@ -1,50 +1,46 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializa o Supabase (garante que as variáveis existem)
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-    // 1. Configuração de CORS (Permitir acesso do navegador)
+    // 1. CORS - Permite o site falar com o backend
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-    // Responde rápido se for só verificação do navegador
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
 
     try {
-        // --- A CORREÇÃO MÁGICA ESTÁ AQUI ---
-        // Se o dado vier como texto (string), nós forçamos virar Objeto (JSON)
+        // --- CORREÇÃO BLINDADA DE DADOS ---
         let data = req.body;
+
+        // Se veio como texto, tenta converter para JSON
         if (typeof data === 'string') {
             try {
                 data = JSON.parse(data);
             } catch (e) {
-                // Se falhar, assume vazio para não quebrar o script
-                data = {};
+                console.error("Erro ao converter JSON:", e);
+                data = {}; 
             }
         }
-        // Se já vier como objeto (às vezes a Vercel faz isso), usa ele mesmo
+        
+        // Garante que é um objeto
         data = data || {}; 
-        // ------------------------------------
-
+        
         const method = req.method;
+        console.log("Método:", method, "Dados:", data); // Log para ajudar a Vercel a debugar
 
-        // --- LOGIN (Hardcoded para funcionar AGORA) ---
+        // --- LOGIN (Hardcoded) ---
         if (method === 'POST' && data.action === 'login') {
             const serverUser = 'madeinbrasa';
-            const serverPass = '123'; // Senha fixa para destravar você
+            const serverPass = '123'; 
 
-            // Compara os dados já tratados
             if (data.user === serverUser && data.pass === serverPass) {
                 return res.status(200).json({ authorized: true });
             } else {
@@ -52,9 +48,24 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- ROTAS DO BANCO DE DADOS ---
+        // --- LANÇAR (POST sem ser login) ---
+        if (method === 'POST') {
+            const { desc, val, cat, date, type } = data;
 
-        // GET - Listar
+            // Validação de segurança: Se não tiver descrição ou valor, não faz nada
+            if (!desc || val === undefined) {
+                 return res.status(400).json({ error: 'Dados incompletos' });
+            }
+
+            const { error } = await supabase
+                .from('transactions')
+                .insert([{ desc, val, cat, date, type, user_id: 'madeinbrasa' }]);
+            
+            if (error) throw error;
+            return res.status(200).json({ msg: 'Adicionado com sucesso' });
+        }
+
+        // --- GET (Listar) ---
         if (method === 'GET') {
             const { data: rows, error } = await supabase
                 .from('transactions')
@@ -66,21 +77,7 @@ export default async function handler(req, res) {
             return res.status(200).json(rows);
         }
 
-        // POST - Adicionar
-        if (method === 'POST') {
-            const { desc, val, cat, date, type } = data;
-            // Validação simples
-            if (!val && val !== 0) return res.status(400).json({ error: 'Valor inválido' });
-
-            const { error } = await supabase
-                .from('transactions')
-                .insert([{ desc, val, cat, date, type, user_id: 'madeinbrasa' }]);
-            
-            if (error) throw error;
-            return res.status(200).json({ msg: 'Adicionado' });
-        }
-
-        // DELETE - Apagar
+        // --- DELETE ---
         if (method === 'DELETE') {
             const { id } = data;
             const { error } = await supabase.from('transactions').delete().eq('id', id);
@@ -88,7 +85,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ msg: 'Deletado' });
         }
 
-        // PUT - Atualizar
+        // --- PUT (Editar) ---
         if (method === 'PUT') {
             const { id, desc, val, cat, date, type } = data;
             const { error } = await supabase.from('transactions').update({ desc, val, cat, date, type }).eq('id', id);
@@ -99,6 +96,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Rota não encontrada' });
 
     } catch (error) {
+        console.error("Erro interno:", error);
         return res.status(500).json({ error: error.message });
     }
 }
