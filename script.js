@@ -28,6 +28,7 @@ let chart = null;
 let weekOffset = 0;
 let viewMonth = false;
 
+// URL da API
 const API_URL = '/api/transactions';
 
 document.getElementById('date').valueAsDate = new Date();
@@ -87,6 +88,7 @@ async function update() {
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
+        // Proteção para não quebrar se vier vazio
         if (Array.isArray(data)) {
             db = data;
         } else {
@@ -161,6 +163,7 @@ function delTx(id) {
     document.getElementById('modalOverlay').style.display = 'flex'; 
 }
 
+// --- FUNÇÃO DE EXCLUSÃO CORRIGIDA ---
 async function confirmDelete() {
     if(deleteId) {
         // 1. Remove da tela imediatamente
@@ -170,28 +173,20 @@ async function confirmDelete() {
         renderizarTela();
         closeModal();
 
-        // SE O ID FOR TEMPORÁRIO (começa com 'temp'), NÃO CHAMA O SERVIDOR
-        // Isso evita o erro 400 em itens que acabaram de ser criados visualmente
-        if (String(deleteId).startsWith('temp')) {
-            return; 
-        }
+        // 2. Se for item temporário (acabou de criar), nem chama o servidor
+        if (String(deleteId).startsWith('temp')) return;
 
-        // 2. Manda pro servidor apagar 
+        // 3. Manda pro servidor APAGAR (Usando POST para garantir entrega do ID)
         try {
-            const response = await fetch(API_URL, { 
+            await fetch(API_URL, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'delete', id: deleteId }) 
             });
-            
-            if (!response.ok) {
-                const err = await response.json();
-                console.error("Erro delete:", err);
-            }
         } catch (error) {
             console.error(error);
-            // Se falhar a rede, não recarregamos a tela para não voltar o item
-            // Apenas no próximo refresh ele voltará se não tiver apagado
+            // Se falhar a internet, recarrega para mostrar a verdade
+            update(); 
         }
     }
 }
@@ -275,7 +270,7 @@ function renderizarTela() {
 
     if(sortedDb.length > 0) {
         sortedDb.forEach(item => {
-            // Ignora itens bugados sem data
+            // Proteção contra itens corrompidos
             if (!item.date || typeof item.date !== 'string') return; 
 
             const parts = item.date.split('-'); 

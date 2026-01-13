@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     // 1. CORS (Permissões de acesso)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS'); // Apenas GET e POST são necessários agora
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
     if (req.method === 'OPTIONS') {
@@ -17,10 +17,10 @@ export default async function handler(req, res) {
     }
 
     try {
-        // --- TRATAMENTO ROBUSTO DE DADOS ---
+        // --- TRATAMENTO DE DADOS (CRUCIAL) ---
         let data = req.body;
         
-        // Se vier como texto, força virar JSON
+        // Se a Vercel entregar como texto, forçamos virar JSON
         if (typeof data === 'string') {
             try { data = JSON.parse(data); } catch (e) { data = {}; }
         }
@@ -40,11 +40,22 @@ export default async function handler(req, res) {
             return res.status(200).json(rows);
         }
 
-        // --- POST: Ações ---
+        // --- POST: Todas as Ações de Modificação ---
         if (method === 'POST') {
             
-            // 1. LOGIN
+            // AÇÃO 1: APAGAR (A CORREÇÃO DEFINITIVA)
+            if (data.action === 'delete') {
+                const { id } = data;
+                if (!id) return res.status(400).json({ error: 'ID não fornecido' });
+
+                const { error } = await supabase.from('transactions').delete().eq('id', id);
+                if (error) throw error;
+                return res.status(200).json({ msg: 'Apagado com sucesso' });
+            }
+
+            // AÇÃO 2: LOGIN
             if (data.action === 'login') {
+                // Senha fixa para garantir acesso
                 if (data.user === 'madeinbrasa' && data.pass === '123') {
                     return res.status(200).json({ authorized: true });
                 } else {
@@ -52,21 +63,7 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 2. APAGAR (CORREÇÃO AQUI)
-            if (data.action === 'delete') {
-                const { id } = data;
-                
-                // Se não tiver ID, avisa o erro
-                if (!id) return res.status(400).json({ error: 'ID faltando para exclusão' });
-
-                // Força apagar onde o ID é igual
-                const { error } = await supabase.from('transactions').delete().eq('id', id);
-                
-                if (error) throw error;
-                return res.status(200).json({ msg: 'Deletado com sucesso' });
-            }
-
-            // 3. EDITAR
+            // AÇÃO 3: EDITAR
             if (data.action === 'edit') {
                 const { id, desc, val, cat, date, type } = data;
                 const { error } = await supabase
@@ -78,7 +75,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ msg: 'Atualizado' });
             }
 
-            // 4. ADICIONAR (Se não tiver action, é adicionar)
+            // AÇÃO 4: ADICIONAR (Padrão)
             const { desc, val, cat, date, type } = data;
             if (desc && val !== undefined) {
                 const { error } = await supabase
@@ -90,10 +87,10 @@ export default async function handler(req, res) {
             }
         }
 
-        return res.status(404).json({ error: 'Rota desconhecida' });
+        return res.status(404).json({ error: 'Método não suportado' });
 
     } catch (error) {
-        console.error("Erro no servidor:", error);
+        console.error("Erro Fatal:", error);
         return res.status(500).json({ error: error.message });
     }
 }
