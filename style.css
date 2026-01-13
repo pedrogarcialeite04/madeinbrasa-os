@@ -321,9 +321,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
     .cine-grid { grid-template-columns: 1fr; }
     .split-view { grid-template-columns: 1fr; }
 }
-/* ================= MODO MOBILE (CORRIGIDO) ================= */
+/* ================= MODO MOBILE (PÁGINA ÚNICA UNIFICADA) ================= */
 @media (max-width: 900px) {
-    /* 1. Limpa a tela e permite rolagem */
+    /* 1. O Body controla a rolagem (página única e longa) */
     body {
         overflow-y: auto; 
         height: auto;
@@ -331,114 +331,113 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) sepia(
         background-attachment: scroll;
     }
 
-    /* 2. Login Fixo e Cobrindo Tudo */
+    /* 2. Login Fixo e Cobrindo Tudo (Isso já estava certo, mantemos) */
     #login-section {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        z-index: 9999; /* Garante que fique MUITO acima de tudo */
-        background-color: var(--bg-deep); /* Fundo sólido para não vazar nada */
-        background-image: url('sis.jpg');
-        background-size: cover;
+        position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%; z-index: 9999;
+        background-color: var(--bg-deep);
+        background-image: url('sis.jpg'); background-size: cover;
     }
 
-    /* 3. Dashboard começa ESCONDIDO */
+    /* 3. Dashboard Unificado (Sem divisão) */
     #dashboard-section {
-        display: none; /* CRUCIAL: Começa invisível */
-        opacity: 0;
-        position: relative;
-        flex-direction: column;
+        display: none; opacity: 0; /* Começa oculto pro login funcionar */
+        flex-direction: column; /* Pilha vertical */
         width: 100%;
         height: auto;
-        background: transparent;
-        z-index: 10;
-        padding-bottom: 50px;
+        overflow: visible;
+        padding-bottom: 60px; /* Espaço no final da rolagem */
+        background: transparent; /* Garante que não tenha fundo cortado */
     }
 
-    /* 4. Ajustes do Menu no Mobile */
+    /* 4. A antiga "Sidebar" agora se funde com a página */
     .glass-sidebar {
         width: 100%;
         height: auto;
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        padding: 20px;
+        background: transparent; /* CRUCIAL: Tira o fundo cinza que dividia a tela */
+        border: none; /* CRUCIAL: Tira a linha de divisão */
+        box-shadow: none; /* Tira a sombra */
+        padding: 20px 20px 0 20px; /* Espaçamento suave */
         position: relative;
         z-index: 20;
-        background: rgba(18, 18, 18, 0.95); 
         display: flex;
         flex-direction: column;
         gap: 15px;
     }
 
-    /* Inputs maiores para dedo */
+    /* Logotipo centralizado no mobile */
+    .dash-logo {
+        justify-content: center;
+        border-bottom: none; /* Remove linha abaixo do logo */
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+    }
+
+    /* Inputs com fundo mais escuro para ler melhor em cima da imagem */
     .control-input, .select-trigger, .btn-gold {
+        background: rgba(10, 10, 10, 0.7); 
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.15);
         padding: 15px;
         font-size: 1rem;
         height: auto;
     }
 
-    /* Botão Lançar bem visível */
+    /* Botão Lançar bem grande */
     .button-launch {
-        width: 100%;
-        margin: 15px 0;
-        height: 50px;
+        width: 100%; margin: 15px 0; height: 55px;
+        background-color: #1a1a1a; /* Fundo mais sólido pra destacar */
     }
 
-    /* 5. Ajuste da Visão Geral */
+    /* 5. Área de Dados (Cola imediatamente abaixo do formulário) */
     .main-view {
-        padding: 15px;
-        overflow: visible;
+        padding: 0 20px 20px 20px; /* Remove padding do topo pra colar no form */
+        width: 100%;
         height: auto;
+        overflow: visible;
     }
 
+    /* Centraliza o cabeçalho "Visão Geral" */
     .view-header {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0; /* Espaço entre o botão lançar e o resumo */
+        text-align: center;
     }
+    
+    .date-navigator { justify-content: center; width: 100%; }
+    .user-info { display: none; } /* Oculta nome do usuário no mobile pra limpar a tela */
 
     /* Cards um abaixo do outro */
-    .cine-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
+    .cine-grid { grid-template-columns: 1fr; gap: 15px; }
 
     .cine-card {
         padding: 20px;
-        border-radius: 15px;
-        background: rgba(20, 20, 20, 0.9);
+        background: rgba(15, 15, 15, 0.85); /* Fundo unificado */
+        backdrop-filter: blur(10px);
     }
 
     /* Gráfico e Lista */
     .split-view {
         display: flex;
-        flex-direction: column-reverse; /* Lista em cima, gráfico embaixo no mobile */
+        flex-direction: column-reverse; /* Lista primeiro, Gráfico por último */
         gap: 30px;
     }
 
+    /* Lista cresce conforme o conteúdo (sem scroll interno chato) */
     .transaction-list {
         height: auto;
-        max-height: 400px; /* Limite para não ficar infinito */
+        max-height: none; 
+        overflow: visible;
     }
 
-    /* 6. Correção do Gráfico no Celular */
-    .chart-panel {
-        height: 300px;
-        margin-bottom: 20px;
-    }
-    
-    .chart-container {
-        height: 100%;
-        width: 100%;
-    }
+    .chart-panel { height: 300px; margin-bottom: 20px; }
+    .chart-container { height: 100%; width: 100%; }
 
     /* Botões finais */
-    .Btn-logout {
-        width: 100%;
-        border-radius: 12px;
-        justify-content: center;
-        background-color: var(--fire-glow);
-    }
+    .btn-support { width: 100%; margin-top: 20px; background: rgba(0,0,0,0.6); }
+    .Btn-logout { width: 100%; border-radius: 12px; justify-content: center; margin-top: 15px; }
     .Btn-logout .text { opacity: 1; width: auto; padding-left: 10px; position: relative; color: #000; }
     .Btn-logout .sign { width: auto; }
 }
