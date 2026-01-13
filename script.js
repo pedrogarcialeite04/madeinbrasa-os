@@ -166,27 +166,35 @@ function delTx(id) {
 // --- FUNÇÃO DE EXCLUSÃO CORRIGIDA ---
 async function confirmDelete() {
     if(deleteId) {
-        // 1. Remove da tela imediatamente
+        // 1. Remove da tela imediatamente (Visual)
         if (Array.isArray(db)) {
             db = db.filter(item => item.id !== deleteId);
         }
         renderizarTela();
         closeModal();
 
-        // 2. Se for item temporário (acabou de criar), nem chama o servidor
+        // 2. Se for item temporário, para por aqui
         if (String(deleteId).startsWith('temp')) return;
 
-        // 3. Manda pro servidor APAGAR (Usando POST para garantir entrega do ID)
+        // 3. Manda pro servidor APAGAR (Com correção de tipo)
         try {
+            // Garante que o ID seja enviado como número puro, se possível
+            const idToSend = parseInt(deleteId);
+
             await fetch(API_URL, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'delete', id: deleteId }) 
+                body: JSON.stringify({ 
+                    action: 'delete', 
+                    id: idToSend 
+                }) 
             });
+            
+            // Opcional: Chama update() em background para garantir sincronia silenciosa
+            // update(); 
         } catch (error) {
-            console.error(error);
-            // Se falhar a internet, recarrega para mostrar a verdade
-            update(); 
+            console.error("Falha ao apagar no servidor:", error);
+            alert("Erro de conexão. O item pode reaparecer.");
         }
     }
 }
